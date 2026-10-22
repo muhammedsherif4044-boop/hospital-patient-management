@@ -4,34 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hospital Patient Management System</title>
-<style>
-:root{--bg:#f4f7fb;--card:#fff;--tx:#14213d;--mut:#5c6b84;--pri:#0b7a75;--pri2:#e0f3f2;--bd:#d9e1ec;--dan:#c0392b;--ok:#1e8449;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0e1621;--card:#17212f;--tx:#e8eef7;--mut:#9aa9bf;--pri:#3fc1b8;--pri2:#173a3b;--bd:#2a3a50;--dan:#ff7b6b;--ok:#5fd38d}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header{background:var(--pri);color:#fff;padding:22px 16px}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) header{color:#0e1621}}
-header h1{margin:0;font-size:1.4rem}header p{margin:4px 0 0;opacity:.9;font-size:.9rem}
-main{max-width:1000px;margin:0 auto;padding:16px;display:grid;gap:16px}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px}
-h2{margin:0 0 12px;font-size:1.05rem}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-label{display:block;font-size:.78rem;color:var(--mut);margin-bottom:2px}
-input,select{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
-button{padding:9px 14px;border:0;border-radius:8px;background:var(--pri);color:#fff;font:inherit;font-weight:600;cursor:pointer}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button{color:#0e1621}}
-button.sec{background:var(--pri2);color:var(--pri)}button.dan{background:transparent;color:var(--dan);border:1px solid var(--dan);padding:5px 10px}
-.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
-.msg{min-height:1.4em;font-size:.88rem;margin-top:8px}.msg.err{color:var(--dan)}.msg.ok{color:var(--ok)}
-.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:640px}
-th,td{text-align:left;padding:8px;border-bottom:1px solid var(--bd);font-size:.88rem}th{color:var(--mut);font-weight:600}
-.chain{display:flex;align-items:center;overflow-x:auto;padding:6px 0;gap:0}
-.node{display:flex;border:2px solid var(--pri);border-radius:8px;overflow:hidden;flex:none;font-size:.8rem}
-.node b{padding:6px 10px;background:var(--pri2)}.node i{padding:6px 8px;font-style:normal;color:var(--mut);border-left:2px solid var(--pri)}
-.arrow{color:var(--pri);padding:0 6px;flex:none}.tag{font-size:.7rem;color:var(--mut);margin-right:6px;flex:none}
-.empty{color:var(--mut);font-size:.88rem}
-.stats{display:flex;gap:16px;font-size:.85rem;color:var(--mut)}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header><h1>Hospital Patient Management System</h1><p>A Linked List based application for organised patient records and a waiting queue.</p></header>
@@ -82,59 +55,6 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--bd);font-size:.8
 </section>
 </main>
 
-<script>
-// ---- Data structure: singly linked list ----
-class Patient{constructor(id,name,age,gender,disease,phone,doctor){Object.assign(this,{id,name,age,gender,disease,phone,doctor});}}
-class Node{constructor(data){this.data=data;this.next=null;}}
-class LinkedList{
-  constructor(){this.head=null;this.tail=null;this.size=0;}
-  addLast(d){const n=new Node(d);if(!this.head){this.head=this.tail=n;}else{this.tail.next=n;this.tail=n;}this.size++;}
-  removeFirst(){if(!this.head)return null;const d=this.head.data;this.head=this.head.next;if(!this.head)this.tail=null;this.size--;return d;}
-  find(fn){let c=this.head;while(c){if(fn(c.data))return c;c=c.next;}return null;}
-  removeWhere(fn){let c=this.head,p=null;while(c){if(fn(c.data)){if(p)p.next=c.next;else this.head=c.next;if(c===this.tail)this.tail=p;this.size--;return true;}p=c;c=c.next;}return false;}
-  toArray(){const a=[];let c=this.head;while(c){a.push(c.data);c=c.next;}return a;}
-}
-const patients=new LinkedList(), queue=new LinkedList();
-
-// ---- UI helpers ----
-const $=id=>document.getElementById(id);
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function say(el,t,ok){$(el).textContent=t;$(el).className='msg '+(ok?'ok':'err');}
-function readForm(){
-  const v=k=>$(k).value.trim();
-  const id=parseInt(v('id'),10), age=parseInt(v('age'),10);
-  if(!Number.isInteger(id)||id<1) throw new Error('Enter a valid patient ID.');
-  if(!v('name')) throw new Error('Name is required.');
-  if(!Number.isInteger(age)||age<0||age>120) throw new Error('Enter a valid age (0–120).');
-  if(!v('disease')) throw new Error('Disease is required.');
-  if(!/^\d{10}$/.test(v('phone'))) throw new Error('Phone number must be 10 digits.');
-  if(!v('doctor')) throw new Error('Doctor name is required.');
-  return new Patient(id,v('name'),age,$('gender').value,v('disease'),v('phone'),v('doctor'));
-}
-function fillForm(p){for(const k of ['id','name','age','gender','disease','phone','doctor'])$(k).value=p[k];}
-function chainHTML(list,label){
-  const a=list.toArray();
-  if(!a.length)return '<span class="empty">Empty list</span>';
-  return '<span class="tag">'+label+'</span>'+a.map(p=>'<div class="node"><b>#'+esc(p.id)+' '+esc(p.name)+'</b><i>next</i></div><span class="arrow">→</span>').join('')+'<span class="tag">null</span>';
-}
-function render(){
-  const a=patients.toArray();
-  $('cnt').textContent=a.length;
-  $('rows').innerHTML=a.length?a.map(p=>'<tr><td>'+esc(p.id)+'</td><td>'+esc(p.name)+'</td><td>'+esc(p.age)+'</td><td>'+esc(p.gender)+'</td><td>'+esc(p.disease)+'</td><td>'+esc(p.phone)+'</td><td>'+esc(p.doctor)+'</td></tr>').join(''):'<tr><td colspan="7" class="empty">No patient records yet.</td></tr>';
-  $('chain').innerHTML=chainHTML(patients,'head');
-  $('queue').innerHTML=chainHTML(queue,'front');
-}
-
-// ---- Operations ----
-$('add').onclick=()=>{try{const p=readForm();if(patients.find(x=>x.id===p.id))throw new Error('Patient ID '+p.id+' already exists.');patients.addLast(p);say('msg','Patient added.',true);render();}catch(e){say('msg',e.message,false);}};
-$('upd').onclick=()=>{try{const p=readForm();const n=patients.find(x=>x.id===p.id);if(!n)throw new Error('No patient with ID '+p.id+'.');n.data=p;say('msg','Patient updated.',true);render();}catch(e){say('msg',e.message,false);}};
-$('clr').onclick=()=>{document.querySelectorAll('.card input').forEach(i=>{if(i.id!=='sid')i.value='';});say('msg','',true);};
-function sid(){const n=parseInt($('sid').value,10);if(!Number.isInteger(n))throw new Error('Enter a patient ID.');return n;}
-$('find').onclick=()=>{try{const n=patients.find(x=>x.id===sid());if(!n)throw new Error('Patient not found.');fillForm(n.data);say('smsg','Found: '+n.data.name+'. Details loaded in the form for editing.',true);}catch(e){say('smsg',e.message,false);}};
-$('del').onclick=()=>{try{const id=sid();if(!patients.removeWhere(x=>x.id===id))throw new Error('Patient not found.');queue.removeWhere(x=>x.id===id);say('smsg','Record deleted.',true);render();}catch(e){say('smsg',e.message,false);}};
-$('q').onclick=()=>{try{const id=sid();const n=patients.find(x=>x.id===id);if(!n)throw new Error('Patient not found.');if(queue.find(x=>x.id===id))throw new Error('Already in the queue.');queue.addLast(n.data);say('smsg',n.data.name+' added to the waiting queue.',true);render();}catch(e){say('smsg',e.message,false);}};
-$('next').onclick=()=>{const p=queue.removeFirst();if(!p)return say('qmsg','The waiting queue is empty.',false);say('qmsg','Now calling: '+p.name+' (ID '+p.id+') for Dr. '+p.doctor.replace(/^Dr\.?\s*/i,'')+'.',true);render();};
-render();
-</script>
+<script src="script.js"></script>
 </body>
 </html>
